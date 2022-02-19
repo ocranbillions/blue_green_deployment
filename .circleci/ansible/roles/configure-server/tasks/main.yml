@@ -10,7 +10,6 @@
 
     wget -qO- https://get.docker.com/ | sh
     sudo usermod -aG docker ubuntu
-    docker build --tag=ocranbillions/capstone .
 
 - name: Install minikube
   shell: |
