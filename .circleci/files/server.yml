@@ -32,4 +32,4 @@ Resources:
       ImageId: ami-036d46416a34a611c 
       Tags:
         - Key: Name
-          Value: !Sub capstone-${ID}
+          Value: !Sub green-${ID}
