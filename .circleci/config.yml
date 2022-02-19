@@ -17,7 +17,73 @@ jobs:
           command: |
             . run_linter.sh
 
+  deploy-infrastructure:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Deploy server
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/server.yml \
+              --tags project=capstone-tag \
+              --stack-name "capstone-stack-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  
+      - run:
+          name: Add server ip to ansible inventory
+          command: |
+            aws ec2 describe-instances \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --filters "Name=tag:project,Values=capstone-tag" \
+              --output text >> .circleci/ansible/inventory.txt
+            echo "Print inventory.txt content"
+            cat .circleci/ansible/inventory.txt
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/.circleci/ansible/inventory.txt
+      # - destroy_environment:
+      #     workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
+  
+  configure-infrastructure:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["13:b3:8b:18:d3:33:6f:ef:6a:a0:04:7c:d0:76:ea:35"]
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible
+            cat .circleci/ansible/inventory.txt
+      - run:
+          name: Configure server
+          command: |
+            echo "Print inventory.txt content"
+            cat ~/project/.circleci/ansible/inventory.txt
+            echo "List directory content"
+            ls
+            ansible-playbook \
+              -i ~/project/.circleci/ansible/inventory.txt \
+              .circleci/ansible/configure-server.yml
+      # - persist_to_workspace:
+      #     root: ~/
+      #     paths:
+      #       - project/backend
+      # - destroy_environment:
+      #     workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}" 
+      
+
+
 workflows:
   default:
     jobs:
       - lint-code
+      - deploy-infrastructure:
+          requires: [lint-code]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
