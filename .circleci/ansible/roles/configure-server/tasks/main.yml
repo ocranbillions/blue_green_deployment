@@ -3,17 +3,31 @@
   apt:
     upgrade: "yes"
 
-- name: "install dependencies."
-  become: true
-  apt:
-    name: ["nodejs", "npm"]
-    state: latest
-    update_cache: yes
+- name: Configure server/ install docker
+  shell: |
+    git clone https://github.com/ocranbillions/blue_green_deployment.git
+    cd blue_green_deployment
 
-- name: "install pm2"
-  become: true
-  npm:
-    name: pm2
-    global: yes
-    production: yes
-    state: present
+    wget -qO- https://get.docker.com/ | sh
+    sudo usermod -aG docker ubuntu
+
+- name: Install minikube
+  shell: |
+    sudo wget https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+    sudo mv minikube-linux-amd64 /usr/local/bin/minikube
+    sudo chmod 755 /usr/local/bin/minikube
+
+- name: Install kubectl
+  shell: |
+    sudo apt-get update
+    sudo apt-get install -y apt-transport-https ca-certificates curl
+    sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+    sudo apt-get update
+    sudo apt-get install -y kubelet kubeadm kubectl
+    sudo apt-mark hold kubelet kubeadm kubectl
+
+# - name: Run minikube
+#   shell: |
+#     sudo su - ubuntu
+#     minikube start --driver=docker
