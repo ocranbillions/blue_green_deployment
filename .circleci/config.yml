@@ -48,14 +48,13 @@ jobs:
           cluster-name: << parameters.cluster-name >>
       - run:
           command: |
-            # kubectl get services && sleep 300
-
             kubectl get services
 
             dockerpath="ocranbillions/capstone"
             kubectl run --image=ocranbillions/capstone capstone --port=8080
             kubectl get pod
-            kubectl port-forward pod/capstone 8080:8080
+            
+            # kubectl port-forward pod/capstone 8080:8080
             
           name: Deploy image
 
